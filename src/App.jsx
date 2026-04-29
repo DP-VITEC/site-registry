@@ -126,12 +126,6 @@ th{color:#475569;background:#f8fafc;font-size:12px;text-transform:uppercase;lett
 .eyebrow{color:#123a78;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .auth-message{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;color:#334155}
 @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.main{padding:0 14px 18px}.toolbar,.detail-grid,.form-grid,.two-col,.stats,.report-filters,.hardware-grid{grid-template-columns:1fr}.header{grid-template-columns:1fr}.header-actions{justify-content:flex-start}.detail-header,.card-title-row{flex-direction:column;align-items:stretch}}
-
-
-/* Detail header optical alignment */
-.detail-header h1{margin:8px 0 4px 0;line-height:1.05;transform:translateX(2px)}
-.detail-header p,.detail-header .muted{margin-left:2px}
-.detail-header .tag-row{margin-left:0}
 `;
 
 function makeEmptyHardware() {
@@ -464,7 +458,7 @@ function AppFrame({ page, setPage, signOut, setEditingSite, exportSites, childre
           <button className="nav-button" onClick={() => setEditingSite(emptySite)}><span className="nav-dot"></span>New Site</button>
           <button className="nav-button" onClick={exportSites}><span className="nav-dot"></span>Export Sites</button>
         </div>
-        <div className="sidebar-footer"><button className="nav-button" onClick={signOut}><span className="nav-dot"></span>Sign Out</button></div>
+        <div className="sidebar-footer"><div className="nav-label">POC Mode</div><div className="muted" style={{color:"rgba(255,255,255,.65)", padding:"0 10px"}}>Login disabled</div></div>
       </aside>
       <main className="main"><div className="shell">{children}</div></main>
     </div>
@@ -481,8 +475,6 @@ function SortHeader({ label, sortKey, toggleSort, sortMark, children }) {
 }
 
 export default function SiteRegistryMVP() {
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -502,29 +494,9 @@ export default function SiteRegistryMVP() {
   const [inlineDraft, setInlineDraft] = useState({});
 
   useEffect(() => {
-    let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      setAuthLoading(false);
-      if (data.session) loadSites();
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) loadSites();
-      else {
-        setSites([]);
-        setPage("list");
-        setSelectedId(null);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
+    loadSites();
   }, []);
+
 
   async function loadSites() {
     setLoading(true);
@@ -546,8 +518,9 @@ export default function SiteRegistryMVP() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    setPage("list");
   }
+
 
   const selectedSite = sites.find((site) => site.id === selectedId) || null;
   const hardwareSuggestions = useMemo(
@@ -768,14 +741,6 @@ export default function SiteRegistryMVP() {
     setInlineEditingId(null);
     setInlineDraft({});
     setPage("list");
-  }
-
-  if (authLoading) {
-    return <div className="app"><style>{css}</style><div className="shell"><section className="card"><p>Checking login...</p></section></div></div>;
-  }
-
-  if (!session) {
-    return <div className="app"><style>{css}</style><LoginScreen /></div>;
   }
 
   return (
